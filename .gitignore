@@ -1,2 +1,20 @@
+# Dev directories to ignore
 tmp/
 archive/
+
+# General Python files and directories to ignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+*.log
+
+# macOS-specific files
+.DS_Store

@@ -13,43 +13,7 @@ import argparse
 import urllib.request
 from subprocess import Popen, PIPE
 
-
-# logging
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.DEBUG)
-
-# argparse
-class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
-                      argparse.RawDescriptionHelpFormatter):
-    pass
-
-desc = 'Create database for phyloFlash'
-epi = """DESCRIPTION:
-Download and format phyloFlash database files.
-All output files are stored in the output directory.
-"""
-parser = argparse.ArgumentParser(description=desc, epilog=epi,
-                                 formatter_class=CustomFormatter)
-parser.add_argument("outdir", type=str, 
-                    help = "Output directory path")
-parser.add_argument("-s", "--skip-sortmerna", action='store_true', default=False,
-                    help = "Skip sortmerna database")
-parser.add_argument("-t", "--threads", type=int, default=4,
-                    help = "Number of threads to use")
-parser.add_argument("-m", "--memory", type=int, default=12,
-                    help = "Memory limit in GB")
-parser.add_argument("-U", "--univec-url", type=str, 
-                    default='https://ftp.ncbi.nlm.nih.gov/pub/UniVec/UniVec',
-                    help = "UniVec database URL")
-parser.add_argument("-S", "--silva-url", type=str, 
-                    default='https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/SILVA_138.1_LSURef_NR99_tax_silva_trunc.fasta.gz',
-                    help = "SILVA database URL")
-parser.add_argument("-d", "--debug", action='store_true', default=False,
-                    help = "Debug mode")
-parser.add_argument("-N", "--num-lines", type=int, default=1000,
-                    help = "Max number of lines to used from the SILVA database, if debug=True")
-
-
-# Mapping IUPAC ambiguous bases to [ATGC]
+# Dict to map IUPAC ambiguous bases to [ATGC]
 IUPAC_DECODE = {
     'X' : 'ACGT',
     'R' : 'AG',
@@ -104,7 +68,7 @@ def silva_download(silva_url: str, outdir: str, debug=False):
     Download the latest version of the SILVA SSU RefNR database from www.arb-silva.de
     """
     logging.info('Downloading SILVA database from www.arb-silva.de...')
-    silva_file = os.path.join(args.outdir, 'SILVA_138.1_LSURef_NR99_tax_silva_trunc.fasta.gz')
+    silva_file = os.path.join(outdir, 'SILVA_138.1_LSURef_NR99_tax_silva_trunc.fasta.gz')
     if debug is True and os.path.isfile(silva_file):
         return silva_file
     urllib.request.urlretrieve(silva_url, silva_file)
@@ -159,7 +123,7 @@ def subset_fasta(silva_file: str, n=1000) -> str:
                 break
     return out_file
 
-def remove_LSU_contamination(silva_file: str) -> str:
+def remove_LSU_contamination(silva_file: str, threads=1) -> str:
     """
     Remove sequences with potential LSU contamination
     """
@@ -171,7 +135,7 @@ def remove_LSU_contamination(silva_file: str) -> str:
     # run barrnap_HGV on each domain
     barrnap_results = set()
     for domain in ['bac', 'arch', 'euk']:
-        cmd = f'{exe} --kingdom {domain} --threads {args.threads} --evalue 1e-10 --gene lsu --reject 0.01 {silva_file}'
+        cmd = f'{exe} --kingdom {domain} --threads {threads} --evalue 1e-10 --gene lsu --reject 0.01 {silva_file}'
         run_barrnap(cmd, barrnap_results, domain)
     # remove SILVA sequences with potential LSU contamination
     out_file,ext = os.path.splitext(silva_file)
@@ -355,31 +319,31 @@ def main(args: dict) -> None:
     silva_file = silva_download(args.silva_url, args.outdir, args.debug)
     
     # Uncompress the SILVA database file
-    silva_file = silva_uncompress(silva_file, args.outdir, num_lines=args.num_lines)
+    silva_file = silva_uncompress(silva_file, args.outdir, num_lines = args.num_lines)
     
     # Remove sequences with potential LSU contamination
-    silva_file = remove_LSU_contamination(silva_file)
+    silva_file = remove_LSU_contamination(silva_file, threads = args.threads)
     
     # Mask repeats in SILVA SSU sequences
-    silva_file = mask_repeats(silva_file, threads=args.threads, memory=args.memory)
+    silva_file = mask_repeats(silva_file, threads=args.threads, memory = args.memory)
     
     # Screen SILVA db against UniVec and trim matching sequences with bbduk
-    silva_file = univec_trim(univec_file, silva_file, threads=args.threads, memory=args.memory)
+    silva_file = univec_trim(univec_file, silva_file, threads = args.threads, memory = args.memory)
     
     # Use Vsearch to index the SILVA database and create a UDB file
-    silva_ubd_file = make_vsearch_udb(silva_file, threads=args.threads)
+    silva_ubd_file = make_vsearch_udb(silva_file, threads = args.threads)
     
     # Cluster the SILVA database at 99% identity using Vsearch
-    silva99_file = cluster(silva_file, seqid=0.99)
+    silva99_file = cluster(silva_file, seqid = 0.99)
     
     # Format the sequence data
     silva99_file = fasta_copy_iupac_randomize(silva99_file)
     
     # Create bbmap index from SILVA database
-    bbmap_db(silva99_file, args.outdir, threads=args.threads, memory=args.memory)
+    bbmap_db(silva99_file, args.outdir, threads = args.threads, memory = args.memory)
     
     # Cluster the SILVA database at 96% identity using Vsearch
-    silva96_file = cluster(silva_file, seqid=0.96)
+    silva96_file = cluster(silva_file, seqid = 0.96)
 
     # Format the sequence data
     silva96_file = fasta_copy_iupac_randomize(silva96_file)
