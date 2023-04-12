@@ -9,9 +9,9 @@ import pickle
 import random
 import shutil
 import logging
-import argparse
 import urllib.request
 from subprocess import Popen, PIPE
+
 
 # Dict to map IUPAC ambiguous bases to [ATGC]
 IUPAC_DECODE = {

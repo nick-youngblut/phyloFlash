@@ -15,24 +15,8 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.RawDescriptionHelpFormatter):
     pass
 
-# parser = argparse.ArgumentParser(description=desc, epilog=epi,
-#                                  formatter_class=CustomFormatter)
-# def make_db(args):
-#     # Implement your 'cmd1' subcommand here
-#     make_db.main(args)
-
-def run(args):
-    # Implement your 'cmd2' subcommand here
-    print("Command 2 executed with arguments:", args)
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="A pipeline to rapidly reconstruct the SSU rRNAs",
-        formatter_class=CustomFormatter
-    )
-    subparsers = parser.add_subparsers()
-
-    # subcommand: make-db
+def cmd_make_db(subparsers):
+     # subcommand: make-db
     desc = 'Create database for phyloFlash'
     epi = """DESCRIPTION:
     Download and format phyloFlash database files.
@@ -61,16 +45,60 @@ def main():
     parser_make_db.add_argument("-N", "--num-lines", type=int, default=1000,
                                 help = "Max number of lines to used from the SILVA database, if debug=True")
 
-    # subcommand: run
+def cmd_run(subparsers):
+       # subcommand: run
     desc = 'Run phyloFlash pipeline'
     epi = """DESCRIPTION:
     Run phyloFlash pipeline.
     """
     parser_run = subparsers.add_parser("run", formatter_class=CustomFormatter,
                                        description = desc, epilog = epi)
-    parser_run.set_defaults(func=run)
+    parser_run.set_defaults(func=core.main)
     ## Add arguments specific to cmd2, e.g.
-    # parser_cmd2.add_argument("-o", "--output", help="Output file", default="output.txt")
+    parser_run.add_argument('--read1', type=str, help='Forward read file')
+    parser_run.add_argument('--read2', type=str, help='Reverse read file')
+    parser_run.add_argument('--lib', type=str, help='Output file basename')
+    parser_run.add_argument('--db-home', type=str, help='phyloFlash DB folder')
+    parser_run.add_argument('--interleaved', action='store_true', help='Interleaved reads')
+    parser_run.add_argument('--read-length', type=int, help='Read length')
+    parser_run.add_argument('--read-limit', type=int, help='Read limit')
+    parser_run.add_argument('--amp-limit', type=int, help='Amplimit')
+    parser_run.add_argument('--max-insert', type=int, help='Maxinsert')
+    parser_run.add_argument('--id', type=int, help='Read mapping identity')
+    parser_run.add_argument('--cluster-id', type=int, help='Clustering identity')
+    parser_run.add_argument('--tax-level', type=int, default=4, help='Taxon report level')
+    parser_run.add_argument('--threads', type=int, default=1, help='threads')
+    parser_run.add_argument('--html', action='store_true', help='HTML flag')
+    parser_run.add_argument('--treemap', action='store_true', help='Treemap flag')
+    parser_run.add_argument('--crlf', action='store_true', help='CRLF flag')
+    parser_run.add_argument('--decimal-comma', action='store_true', help='Decimal comma flag')
+    parser_run.add_argument('--sortmerna', action='store_true', help='Use sortmerna')
+    parser_run.add_argument('--evalue-sortmerna', type=str, help='E-value sortmerna')
+    parser_run.add_argument('--emirge', action='store_true', help='Use emirge')
+    parser_run.add_argument('--skip-emirge', action='store_true', help='Skip emirge')
+    parser_run.add_argument('--skip-spades', action='store_true', help='Skip spades')
+    parser_run.add_argument('--trusted', type=str, help='Trusted contigs')
+    parser_run.add_argument('--poscov', action='store_true', help='Positional coverage flag')
+    parser_run.add_argument('--sc', action='store_true', help='SC flag')
+    parser_run.add_argument('--zip', action='store_true', help='Zip flag')
+    parser_run.add_argument('--log', action='store_true', help='Save log flag')
+    parser_run.add_argument('--keeptmp', action='store_true', help='Keep temporary files')
+    parser_run.add_argument('--everything', action='store_true', help='Everything flag')
+    parser_run.add_argument('--almost-everything', action='store_true', help='Almost everything flag')
+    parser_run.add_argument('--tophit', action='store_true', help='Top hit flag')
+    parser_run.add_argument('--check-env', action='store_true', help='Check environment flag')
+    parser_run.add_argument('--outfiles', action='store_true', help='Output description flag')
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="A pipeline to rapidly reconstruct the SSU rRNAs",
+        formatter_class=CustomFormatter
+    )
+    subparsers = parser.add_subparsers()
+
+    # subcommands
+    cmd_make_db(subparsers)
+    cmd_run(subparsers)
 
     # parse arguments
     args = parser.parse_args()

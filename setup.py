@@ -28,9 +28,18 @@ setup(
     ],
     python_requires='>=3.7',
     #install_requires=[   ],
+    package_data={
+        "phyloflash": [
+            "data/barrnap-HGV/all/*.hmm", 
+            "data/barrnap-HGV/lsu/*.hmm", 
+            "data/barrnap-HGV/ssu/*.hmm",
+            "data/barrnap-HGV/nhmmer-darwin",
+            "data/barrnap-HGV/nhmmer-linux"
+        ]
+    },
     entry_points={
         "console_scripts": [
-            "phyloflash=phyloflash.cli:main",
+            "phyloflash=phyloflash.cli:main"
         ],
     },
 )
